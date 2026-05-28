@@ -129,7 +129,7 @@ Return ONLY a valid JSON object with translated fields:
 
 export async function analyzeATS(resume: ResumeData, targetJobDescription: string) {
   const config = getAIConfig();
-  const prompt = `You are an ATS (Applicant Tracking System) optimization expert. Analyze this resume against the target job description.
+  const prompt = `你是一名中文简历 ATS 优化专家。请基于候选人简历与目标岗位描述，输出中文分析结论。
 
 Resume Summary: ${resume.summary || 'Not provided'}
 Job Title: ${resume.jobTitle || 'Not specified'}
@@ -137,7 +137,7 @@ Target Job Description: ${targetJobDescription || 'Not provided'}
 
 Skills: ${(resume.skills || []).map((s) => s.name).join(', ')}
 
-Return ONLY a valid JSON object:
+只返回合法 JSON（不要 markdown）:
 {
   "atsScore": 85,
   "matchLevel": "Strong Match | Partial Match | Weak Match",
@@ -162,7 +162,7 @@ Return ONLY a valid JSON object:
 
 export async function suggestImprovements(resume: ResumeData) {
   const config = getAIConfig();
-  const prompt = `You are a resume improvement expert. Review this resume and suggest actionable improvements.
+  const prompt = `你是一名中文简历优化专家。请审阅这份简历并给出可执行建议，全部使用中文。
 
 First Name: ${resume.firstName} ${resume.lastName}
 Job Title: ${resume.jobTitle || 'Not specified'}
@@ -170,7 +170,7 @@ Summary: ${resume.summary || 'Not provided'}
 Target Job: ${resume.targetJobTitle || 'Not specified'}
 Target Industry: ${resume.targetIndustry || 'Technology'}
 
-Return ONLY a valid JSON object:
+只返回合法 JSON（不要 markdown）:
 {
   "overallScore": 75,
   "strengths": ["strength1", ...],
@@ -198,14 +198,18 @@ Return ONLY a valid JSON object:
 
 export async function generateInterviewQuestions(resume: ResumeData) {
   const config = getAIConfig();
-  const prompt = `You are an expert technical interviewer. Generate interview questions tailored to this candidate's resume.
+  const prompt = `你是一名中国互联网求职场景的资深面试官。请根据候选人简历内容和目标岗位，生成中文面试题。
+要求：
+1) HR面：覆盖动机、职业稳定性、协作冲突、抗压、沟通、项目 ownership、期望与风险点。
+2) 技术面：深挖简历中每一项技术与项目，给出追问链路，按“30分钟高强度拷打”组织问题。
+3) 问题要具体、可追问、可验证，不要泛泛而谈。
 
 Candidate: ${resume.firstName} ${resume.lastName}
 Job Title: ${resume.jobTitle || resume.targetJobTitle || 'Professional'}
 Summary: ${resume.summary || 'Not provided'}
 Skills: ${(resume.skills || []).map((s) => s.name).join(', ')}
 
-Return ONLY a valid JSON object:
+只返回合法 JSON（不要 markdown）:
 {
   "technicalQuestions": [
     { "question": "...", "context": "Why this is relevant", "difficulty": "easy|medium|hard" }

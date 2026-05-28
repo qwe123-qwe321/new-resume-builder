@@ -1,6 +1,45 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 
+const RESUME_SCALAR_FIELDS = new Set([
+  'title',
+  'targetJobTitle',
+  'targetIndustry',
+  'targetCompany',
+  'language',
+  'templateId',
+  'themeColor',
+  'firstName',
+  'lastName',
+  'jobTitle',
+  'address',
+  'phone',
+  'email',
+  'linkedIn',
+  'github',
+  'portfolio',
+  'photoUrl',
+  'summary',
+  'atsScore',
+  'atsFeedback',
+  'certifications',
+  'languages',
+]);
+
+function pickResumeScalarData(input: Record<string, unknown>) {
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (RESUME_SCALAR_FIELDS.has(key)) next[key] = value;
+  }
+  return next;
+}
+
+function normalizeRating(value: unknown): number {
+  const n = Number(value);
+  if (Number.isNaN(n)) return 3;
+  return Math.max(1, Math.min(5, Math.round(n)));
+}
+
 function normalizeFields<T extends Record<string, unknown>>(data: T): T {
   const result = { ...data } as Record<string, unknown>;
   if ('experiences' in result) {
@@ -47,10 +86,64 @@ export class ResumesService {
   }
 
   async update(id: string, userId: string, data: any) {
+    const payload = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+    const scalarData = pickResumeScalarData(payload);
+    const experienceList = Array.isArray(payload.experience) ? payload.experience as Array<Record<string, unknown>> : [];
+    const educationList = Array.isArray(payload.education) ? payload.education as Array<Record<string, unknown>> : [];
+    const skillList = Array.isArray(payload.skills) ? payload.skills as Array<Record<string, unknown>> : [];
+
     return this.prisma.$transaction(async (tx) => {
+      await tx.resumeExperience.deleteMany({ where: { resumeId: id } });
+      await tx.resumeEducation.deleteMany({ where: { resumeId: id } });
+      await tx.resumeSkill.deleteMany({ where: { resumeId: id } });
+
+      if (experienceList.length > 0) {
+        await tx.resumeExperience.createMany({
+          data: experienceList.map((item, index) => ({
+            resumeId: id,
+            title: String(item.title || ''),
+            companyName: String(item.companyName || ''),
+            city: item.city ? String(item.city) : null,
+            state: item.state ? String(item.state) : null,
+            startDate: String(item.startDate || ''),
+            endDate: item.endDate ? String(item.endDate) : null,
+            currentlyWorking: Boolean(item.currentlyWorking),
+            workSummary: item.workSummary ? String(item.workSummary) : null,
+            aiGenerated: Boolean(item.aiGenerated),
+            sortOrder: index,
+          })),
+        });
+      }
+
+      if (educationList.length > 0) {
+        await tx.resumeEducation.createMany({
+          data: educationList.map((item, index) => ({
+            resumeId: id,
+            universityName: String(item.universityName || ''),
+            degree: String(item.degree || ''),
+            major: item.major ? String(item.major) : null,
+            startDate: String(item.startDate || ''),
+            endDate: item.endDate ? String(item.endDate) : null,
+            description: item.description ? String(item.description) : null,
+            sortOrder: index,
+          })),
+        });
+      }
+
+      if (skillList.length > 0) {
+        await tx.resumeSkill.createMany({
+          data: skillList.map((item, index) => ({
+            resumeId: id,
+            name: String(item.name || ''),
+            rating: normalizeRating(item.rating),
+            sortOrder: index,
+          })),
+        });
+      }
+
       const updated = await tx.resume.update({
         where: { id },
-        data,
+        data: scalarData,
         include: {
           experiences: { orderBy: { sortOrder: 'asc' } },
           educations: { orderBy: { sortOrder: 'asc' } },

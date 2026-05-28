@@ -7,6 +7,7 @@ import { HomePage } from '../app/(marketing)/page';
 import { DashboardPage } from '../app/(dashboard)/dashboard/page';
 import { EditResumePage } from '../app/(dashboard)/resume/[id]/edit/page';
 import { ViewResumePage } from '../app/(dashboard)/resume/[id]/view/page';
+import { ResumeAiWorkspacePage } from '../app/(dashboard)/resume/[id]/ai/page';
 import { AuthPage } from '../app/auth/page';
 import { TemplatesPage } from '../app/(dashboard)/templates/page';
 import { SettingsPage } from '../app/(dashboard)/settings/page';
@@ -31,9 +32,9 @@ function ErrorBoundary() {
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="text-6xl font-bold text-muted-foreground">404</h1>
-          <p className="text-muted-foreground mt-4">Page not found</p>
+          <p className="text-muted-foreground mt-4">页面不存在</p>
           <a href="/dashboard" className="text-primary hover:underline text-sm mt-2 inline-block">
-            Back to Dashboard
+            返回控制台
           </a>
         </div>
       </div>
@@ -42,10 +43,10 @@ function ErrorBoundary() {
   return (
     <div className="flex h-screen items-center justify-center bg-background">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Something broke</h1>
-        <p className="text-muted-foreground mt-2">Try refreshing, or go back.</p>
+        <h1 className="text-2xl font-bold">页面发生错误</h1>
+        <p className="text-muted-foreground mt-2">请刷新后重试，或返回首页。</p>
         <a href="/" className="text-primary hover:underline text-sm mt-4 inline-block">
-          Home
+          返回首页
         </a>
       </div>
     </div>
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
       {
         path: 'resume/:id/view',
         element: <ViewResumePage />,
+      },
+      {
+        path: 'resume/:id/ai',
+        element: <ResumeAiWorkspacePage />,
       },
     ],
   },

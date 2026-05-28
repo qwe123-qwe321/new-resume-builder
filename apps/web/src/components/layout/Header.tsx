@@ -7,12 +7,12 @@ export function Header() {
   const { isSignedIn, user, logout } = useAuth();
 
   return (
-    <header className="glass-strong sticky top-0 z-50 border-b border-border">
+    <header className="no-print glass-strong sticky top-0 z-50 border-b border-border">
       <div className="flex items-center justify-between h-14 px-4 md:px-6">
         <Link to="/" className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
           <span className="font-semibold text-sm tracking-tight hidden sm:block">
-            Resume Builder
+            AI 简历助手
           </span>
         </Link>
 
@@ -22,24 +22,24 @@ export function Header() {
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                   <FileText className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Dashboard</span>
+                  <span className="hidden sm:inline">控制台</span>
                 </Button>
               </Link>
               <span className="text-xs text-muted-foreground hidden sm:inline mr-2">
                 {user?.email}
               </span>
               <Button variant="ghost" size="sm" onClick={logout}>
-                Logout
+                退出登录
               </Button>
             </>
           ) : (
             <>
               <Link to="/auth">
-                <Button variant="ghost" size="sm">Sign in</Button>
+                <Button variant="ghost" size="sm">登录</Button>
               </Link>
               <Link to="/auth">
                 <Button size="sm" className="bg-primary hover:bg-primary/90">
-                  Sign up
+                  注册
                 </Button>
               </Link>
             </>

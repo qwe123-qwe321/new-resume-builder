@@ -91,6 +91,47 @@ export function useAiGenerate() {
   });
 }
 
+export function useAiGenerateAsync() {
+  const { getToken } = useAuth();
+  return useMutation({
+    mutationFn: async (data: unknown) => {
+      const token = await getToken();
+      return api.ai.generateAsync(data, token);
+    },
+  });
+}
+
+export function useAiOpsStats() {
+  const { getToken } = useAuth();
+  return useQuery({
+    queryKey: ['ai-ops-stats'],
+    refetchInterval: 10000,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.ai.opsStats(token);
+      return res.data;
+    },
+  });
+}
+
+export function useAiJob(jobId: string | null) {
+  const { getToken } = useAuth();
+  return useQuery({
+    queryKey: ['ai-job', jobId],
+    enabled: !!jobId,
+    refetchInterval: (query) => {
+      const s = (query.state.data as { status?: string } | undefined)?.status;
+      return s === 'done' || s === 'failed' ? false : 1500;
+    },
+    queryFn: async () => {
+      if (!jobId) throw new Error('No jobId');
+      const token = await getToken();
+      const res = await api.ai.job(jobId, token);
+      return res.data;
+    },
+  });
+}
+
 export function useAiFeedback() {
   const { getToken } = useAuth();
 

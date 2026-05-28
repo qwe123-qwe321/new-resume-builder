@@ -4,10 +4,10 @@ import { ArrowRight, FileText, Search, Languages, Target } from 'lucide-react';
 import { useAuth } from '@/contexts/auth';
 
 const FEATURES = [
-  { icon: FileText, title: 'Resume builder', description: 'Forms for every section. Nothing fancy, just works.' },
-  { icon: Target, title: 'ATS analysis', description: 'Paste a job description, get a score and missing keywords.' },
-  { icon: Search, title: 'Interview prep', description: 'Generates questions from your actual experience.' },
-  { icon: Languages, title: 'Translate', description: 'Chinese, Japanese, Korean, French, German, Spanish.' },
+  { icon: FileText, title: '结构化简历编辑', description: '分模块填写，所见即所得，快速生成专业简历。' },
+  { icon: Target, title: 'ATS 匹配分析', description: '粘贴岗位描述，分析匹配度并提示关键优化点。' },
+  { icon: Search, title: '面试问题生成', description: '结合你的经历内容，生成更有针对性的面试题。' },
+  { icon: Languages, title: '多语言支持', description: '支持中文、日语、韩语、法语、德语、西班牙语。' },
 ];
 
 export function HomePage() {
@@ -18,23 +18,23 @@ export function HomePage() {
     <div>
       <section className="max-w-4xl mx-auto px-4 pt-24 pb-16 text-center">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6">
-          Resume builder{' '}
-          <span className="text-primary">that doesn't get in your way</span>
+          专注内容本身的
+          <span className="text-primary"> AI 简历助手</span>
         </h1>
 
         <p className="max-w-xl mx-auto text-muted-foreground text-lg mb-10 leading-relaxed">
-          Fill in the forms. AI fills the gaps. Export when you're done.
+          你负责表达经历，AI 协助润色与补全，完成后即可导出。
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link to={linkTo}>
             <Button size="lg" className="text-base">
-              Get started <ArrowRight className="h-4 w-4 ml-1" />
+              立即开始 <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </Link>
           <Link to={linkTo}>
             <Button variant="outline" size="lg" className="text-base">
-              Sign in
+              前往登录
             </Button>
           </Link>
         </div>
@@ -57,7 +57,7 @@ export function HomePage() {
       </section>
 
       <footer className="border-t border-border py-8 px-4 text-center text-sm text-muted-foreground">
-        <p>AI Resume Builder</p>
+        <p>AI 简历助手</p>
       </footer>
     </div>
   );

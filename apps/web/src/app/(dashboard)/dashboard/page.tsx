@@ -73,10 +73,10 @@ export function DashboardPage() {
     <div className="p-6 md:p-8 lg:p-10 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Resumes</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">我的简历</h1>
         </div>
         <Button onClick={() => setOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4" /> New Resume
+          <Plus className="h-4 w-4" /> 新建简历
         </Button>
       </div>
 
@@ -93,10 +93,10 @@ export function DashboardPage() {
           className="glass rounded-xl p-12 text-center"
         >
           <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Nothing here yet</h3>
-          <p className="text-muted-foreground mb-6">Start a new resume to begin.</p>
+          <h3 className="text-lg font-semibold mb-2">还没有简历</h3>
+          <p className="text-muted-foreground mb-6">创建一份新简历开始填写。</p>
           <Button onClick={() => setOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4" /> New Resume
+            <Plus className="h-4 w-4" /> 新建简历
           </Button>
         </motion.div>
       ) : (
@@ -121,7 +121,7 @@ export function DashboardPage() {
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="font-semibold text-foreground truncate pr-2">
-                      {resume.title || 'Untitled'}
+                      {resume.title || '未命名简历'}
                     </h3>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -131,33 +131,33 @@ export function DashboardPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => navigate(`/dashboard/resume/${resume.id}/edit`)}>
-                          <FileText className="h-4 w-4 mr-2" /> Edit
+                          <FileText className="h-4 w-4 mr-2" /> 编辑
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => window.open(`/resume/${resume.id}/view`, '_blank')}>
-                          <ExternalLink className="h-4 w-4 mr-2" /> View
+                          <ExternalLink className="h-4 w-4 mr-2" /> 预览
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                          <Copy className="h-4 w-4 mr-2" /> Duplicate
+                          <Copy className="h-4 w-4 mr-2" /> 复制
                         </DropdownMenuItem>
                         <Separator />
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDelete(resume.id)}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          <Trash2 className="h-4 w-4 mr-2" /> 删除
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Updated {new Date(resume.updatedAt).toLocaleDateString()}
-                    {resume._count?.versions ? ` · ${resume._count.versions} versions` : ''}
+                    更新于 {new Date(resume.updatedAt).toLocaleDateString()}
+                    {resume._count?.versions ? ` · ${resume._count.versions} 个版本` : ''}
                   </p>
                   <Link
                     to={`/dashboard/resume/${resume.id}/edit`}
                     className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
                   >
-                    Edit
+                    编辑
                     <ExternalLink className="h-3 w-3" />
                   </Link>
                 </div>
@@ -170,22 +170,22 @@ export function DashboardPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Resume</DialogTitle>
+            <DialogTitle>新建简历</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
-              <Label>Title</Label>
+              <Label>简历标题</Label>
               <Input
-                placeholder="Software Engineer 2026"
+                placeholder="例如：前端工程师简历 2026"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="mt-1.5"
               />
             </div>
             <div>
-              <Label>Target job (optional)</Label>
+              <Label>目标岗位（可选）</Label>
               <Input
-                placeholder="Senior Frontend Developer"
+                placeholder="例如：高级前端开发工程师"
                 value={targetJob}
                 onChange={(e) => setTargetJob(e.target.value)}
                 className="mt-1.5"
@@ -194,7 +194,7 @@ export function DashboardPage() {
           </div>
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              取消
             </Button>
             <Button
               onClick={handleCreate}
@@ -204,7 +204,7 @@ export function DashboardPage() {
               {createResume.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                'Create'
+                '创建'
               )}
             </Button>
           </div>

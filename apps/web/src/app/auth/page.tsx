@@ -19,7 +19,7 @@ export function AuthPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error('Email and password are required');
+      toast.error('请输入邮箱和密码');
       return;
     }
     setLoading(true);
@@ -31,7 +31,7 @@ export function AuthPage() {
       }
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Authentication failed');
+      toast.error(err instanceof Error ? err.message : '认证失败，请重试');
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ export function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md mx-auto px-4">
         <h1 className="text-xl font-semibold tracking-tight text-center mb-8">
-          {mode === 'login' ? 'Sign in' : 'Create account'}
+          {mode === 'login' ? '登录' : '创建账号'}
         </h1>
 
         <div className="border border-border rounded-xl p-6">
@@ -49,26 +49,26 @@ export function AuthPage() {
             {mode === 'register' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">First Name</Label>
+                  <Label className="text-xs text-muted-foreground mb-1 block">名字</Label>
                   <Input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="First name"
+                    placeholder="请输入名字"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Last Name</Label>
+                  <Label className="text-xs text-muted-foreground mb-1 block">姓氏</Label>
                   <Input
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Last name"
+                    placeholder="请输入姓氏"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <Label className="text-xs text-muted-foreground mb-1 block">Email</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">邮箱</Label>
               <Input
                 type="email"
                 value={email}
@@ -78,7 +78,7 @@ export function AuthPage() {
             </div>
 
             <div>
-              <Label className="text-xs text-muted-foreground mb-1 block">Password</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">密码</Label>
               <Input
                 type="password"
                 value={password}
@@ -95,9 +95,9 @@ export function AuthPage() {
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : mode === 'login' ? (
-                'Sign in'
+                '登录'
               ) : (
-                'Create account'
+                '创建账号'
               )}
             </Button>
           </form>
@@ -108,8 +108,8 @@ export function AuthPage() {
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               {mode === 'login'
-                ? "Don't have an account? Sign up"
-                : 'Already have an account? Sign in'}
+                ? '还没有账号？立即注册'
+                : '已有账号？立即登录'}
             </button>
           </div>
         </div>

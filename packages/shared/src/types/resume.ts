@@ -51,6 +51,7 @@ export const ResumeSchema = z.object({
   linkedIn: z.string().optional(),
   github: z.string().optional(),
   portfolio: z.string().optional(),
+  photoUrl: z.string().optional(),
   summary: z.string().optional(),
   experience: z.array(ExperienceSchema).default([]),
   education: z.array(EducationSchema).default([]),

@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "embeddings:sync": "tsx src/scripts/embeddings-sync.ts",
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "@nestjs/platform-express": "^10.4.0",
     "@prisma/client": "^6.2.0",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.77.6",
     "dotenv": "^17.4.2",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.0",

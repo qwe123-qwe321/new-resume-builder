@@ -74,6 +74,16 @@ export const api = {
         body: JSON.stringify(data),
         token,
       }),
+    generateAsync: (data: unknown, token: string) =>
+      apiClient<{ data: { jobId: string } }>('/ai/generate/async', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        token,
+      }),
+    job: (jobId: string, token: string) =>
+      apiClient<{ data: unknown }>(`/ai/jobs/${jobId}`, { token }),
+    opsStats: (token: string) =>
+      apiClient<{ data: unknown }>('/ai/ops/stats', { token }),
     sessions: (resumeId: string, token: string) =>
       apiClient<{ data: unknown[] }>(`/ai/sessions/${resumeId}`, { token }),
     feedback: (data: unknown, token: string) =>
