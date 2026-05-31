@@ -11,6 +11,7 @@ node_modules/
 dist/
 .next/
 out/
+*.tsbuildinfo
 
 # database
 *.db
@@ -32,3 +33,7 @@ pnpm-debug.log*
 
 # strapi (old)
 strapi-app/
+
+# local temp artifacts
+_docx_build/
+exp2_assets/

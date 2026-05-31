@@ -181,6 +181,15 @@ pnpm db:studio      # 打开 Prisma Studio
 
 ---
 
+## 🧹 工程优化（已完成）
+
+- ✅ 移除重复配置文件：`apps/web/vite.config.js`（统一以 `vite.config.ts` 为准）
+- ✅ 清理未被引用的旧 AI 组件：`apps/web/src/components/ai/AiPanel.tsx`
+- ✅ 补齐仓库忽略规则：`*.tsbuildinfo`、`_docx_build/`、`exp2_assets/`
+- ✅ 降低无效变更噪音，提升代码审查与 CI 稳定性
+
+---
+
 ## 🔌 AI 接口示例
 
 ### 同步生成
