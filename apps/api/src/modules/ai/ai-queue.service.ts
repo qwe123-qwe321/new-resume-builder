@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, forwardRef } from '@nestjs/common';
 import { Job, Queue, Worker } from 'bullmq';
 import { AiService } from './ai.service';
 
@@ -20,7 +20,7 @@ export class AiQueueService implements OnModuleDestroy {
   private worker: Worker<JobPayload> | null = null;
   private enabled = false;
 
-  constructor(private aiService: AiService) {
+  constructor(@Inject(forwardRef(() => AiService)) private aiService: AiService) {
     const redisUrl = process.env.REDIS_URL || '';
     if (!redisUrl) return;
     try {

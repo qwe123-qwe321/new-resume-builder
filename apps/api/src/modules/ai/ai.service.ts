@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { AiQueueService } from './ai-queue.service';
 import { getAIConfig } from './llm-client';
@@ -35,7 +35,7 @@ type GenerateBody = {
 export class AiService {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
-    @Inject(AiQueueService) private aiQueueService: AiQueueService,
+    @Inject(forwardRef(() => AiQueueService)) private aiQueueService: AiQueueService,
   ) {}
 
   private withJobStatus(body: GenerateBody, status: 'queued' | 'running' | 'done' | 'failed') {
