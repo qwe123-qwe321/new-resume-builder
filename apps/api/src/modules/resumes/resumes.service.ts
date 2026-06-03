@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 
 const RESUME_SCALAR_FIELDS = new Set([
@@ -92,7 +93,7 @@ export class ResumesService {
     const educationList = Array.isArray(payload.education) ? payload.education as Array<Record<string, unknown>> : [];
     const skillList = Array.isArray(payload.skills) ? payload.skills as Array<Record<string, unknown>> : [];
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.resumeExperience.deleteMany({ where: { resumeId: id } });
       await tx.resumeEducation.deleteMany({ where: { resumeId: id } });
       await tx.resumeSkill.deleteMany({ where: { resumeId: id } });
@@ -190,7 +191,7 @@ export class ResumesService {
     const snapshot = v.snapshot as Record<string, unknown>;
     const { experiences, educations, skills, certifications, languages, createdAt, updatedAt, ...fields } = snapshot;
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const restored = await tx.resume.update({
         where: { id },
         data: fields as any,

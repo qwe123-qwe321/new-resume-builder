@@ -208,22 +208,22 @@ export class AiService {
       select: { duration: true, tokensUsed: true },
     });
     const avgLatency7d = recent.length > 0
-      ? recent.reduce((sum, item) => sum + (item.duration || 0), 0) / recent.length
+      ? recent.reduce((sum: number, item: { duration: number | null }) => sum + (item.duration || 0), 0) / recent.length
       : 0;
-    const estimatedCost = recent.reduce((sum, item) => sum + ((item.tokensUsed || 0) / 1000) * 0.002, 0);
+    const estimatedCost = recent.reduce((sum: number, item: { tokensUsed: number | null }) => sum + ((item.tokensUsed || 0) / 1000) * 0.002, 0);
 
     const grouped = await this.prisma.aISession.groupBy({
       by: ['action'],
       _count: { action: true },
     });
-    const actionDistribution = grouped.map((g) => ({ action: g.action, count: g._count.action }));
+    const actionDistribution = grouped.map((g: (typeof grouped)[number]) => ({ action: g.action, count: g._count.action }));
 
     const groupedFailed = await this.prisma.aISession.groupBy({
       by: ['action'],
       where: { NOT: { error: null } },
       _count: { action: true },
     });
-    const actionFailedDistribution = groupedFailed.map((g) => ({ action: g.action, count: g._count.action }));
+    const actionFailedDistribution = groupedFailed.map((g: (typeof groupedFailed)[number]) => ({ action: g.action, count: g._count.action }));
 
     const recentFailed = await this.prisma.aISession.findMany({
       where: { NOT: { error: null } },
