@@ -79,7 +79,21 @@ export class ResumesService {
   }
 
   async create(userId: string, data: any) {
-    const resume = await this.prisma.resume.create({ data: { ...data, userId } });
+    const payload = data?.data && typeof data.data === 'object'
+      ? data.data as Record<string, unknown>
+      : (data && typeof data === 'object' ? data as Record<string, unknown> : {});
+    const scalarData = pickResumeScalarData(payload);
+    const resume = await this.prisma.resume.create({
+      data: {
+        ...scalarData,
+        title: String(scalarData.title || '未命名简历'),
+        firstName: String(scalarData.firstName || ''),
+        lastName: String(scalarData.lastName || ''),
+        certifications: Array.isArray(scalarData.certifications) ? scalarData.certifications as string[] : [],
+        languages: Array.isArray(scalarData.languages) ? scalarData.languages as string[] : [],
+        userId,
+      },
+    });
     await this.prisma.resumeVersion.create({
       data: { resumeId: resume.id, version: 1, snapshot: resume as any, createdBy: 'initial' },
     });
