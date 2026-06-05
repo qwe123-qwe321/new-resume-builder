@@ -3,6 +3,53 @@ import { useResumeStore } from '../../stores/resume-store';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ai-resume/ui';
 import { Button } from '@ai-resume/ui';
 
+const MAX_PHOTO_SIZE = 2 * 1024 * 1024;
+
+function loadImage(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('图片读取失败'));
+    };
+    image.src = url;
+  });
+}
+
+async function compressPhoto(file: File) {
+  const image = await loadImage(file);
+  const targetWidth = 240;
+  const targetHeight = 320;
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('图片处理失败');
+
+  const sourceRatio = image.width / image.height;
+  const targetRatio = targetWidth / targetHeight;
+  let sx = 0;
+  let sy = 0;
+  let sw = image.width;
+  let sh = image.height;
+
+  if (sourceRatio > targetRatio) {
+    sw = image.height * targetRatio;
+    sx = (image.width - sw) / 2;
+  } else {
+    sh = image.width / targetRatio;
+    sy = (image.height - sh) / 2;
+  }
+
+  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+  return canvas.toDataURL('image/jpeg', 0.78);
+}
+
 export function PersonalDetailForm() {
   const { resume, updateField } = useResumeStore();
 
@@ -16,12 +63,16 @@ export function PersonalDetailForm() {
   const onUploadPhoto = async (file: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
+    if (file.size > MAX_PHOTO_SIZE) {
+      alert('证件照不能超过 2MB，请先压缩后再上传。');
+      return;
+    }
+    try {
+      const result = await compressPhoto(file);
       (updateField as unknown as (k: string, v: string) => void)('photoUrl', result);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      alert('证件照处理失败，请更换图片后重试。');
+    }
   };
 
   return (

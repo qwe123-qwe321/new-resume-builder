@@ -20,6 +20,7 @@ const RESUME_SCALAR_FIELDS = new Set([
   'github',
   'portfolio',
   'photoUrl',
+  'workYears',
   'summary',
   'atsScore',
   'atsFeedback',
