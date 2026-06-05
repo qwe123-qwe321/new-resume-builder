@@ -198,3 +198,21 @@ model UsageStat {
 
   @@index([userId, action, createdAt])
 }
+
+model KnowledgeChunk {
+  id        String   @id @default(uuid())
+  source    String   @default("legacy")
+  title     String
+  category  String   @default("general")
+  tags      String[] @default([])
+  content   String
+  embedding Float[]  @default([])
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([source, title])
+  @@index([category])
+  @@index([createdAt])
+}

@@ -14,9 +14,18 @@ export interface ResumeData {
   [key: string]: unknown;
 }
 
-export async function generateSummary(resume: ResumeData) {
+type RagSource = { id: string; title: string; category: string; score: number };
+
+function buildRagSection(ragContext?: string) {
+  return ragContext
+    ? `\nReference Knowledge Context:\n${ragContext}\n\nUse the reference context as general guidance, but do not invent facts that are not present in the resume.\n`
+    : '';
+}
+
+export async function generateSummary(resume: ResumeData, ragContext?: string) {
   const config = getAIConfig();
   const prompt = `You are a professional resume writer and ATS optimization expert.
+${buildRagSection(ragContext)}
 
 Given the following resume information, generate a powerful professional summary.
 
@@ -54,12 +63,17 @@ Return ONLY a valid JSON object (no markdown, no extra text):
   };
 }
 
-export async function optimizeExperience(resume: ResumeData, experienceIndex: number) {
+export async function optimizeExperience(
+  resume: ResumeData,
+  experienceIndex: number,
+  ragContext?: string,
+) {
   const config = getAIConfig();
   const exp = resume.experience?.[experienceIndex];
   if (!exp) throw new Error(`Experience at index ${experienceIndex} not found`);
 
   const prompt = `You are a professional resume optimization expert. Transform the following work experience into STAR-format bullet points with quantified achievements.
+${buildRagSection(ragContext)}
 
 Job Title: ${exp.title || 'Not specified'}
 Company: ${exp.companyName || 'Not specified'}
@@ -127,9 +141,15 @@ Return ONLY a valid JSON object with translated fields:
   return { targetLanguage, translatedFields: parsed };
 }
 
-export async function analyzeATS(resume: ResumeData, targetJobDescription: string) {
+export async function analyzeATS(
+  resume: ResumeData,
+  targetJobDescription: string,
+  ragContext?: string,
+  ragSources: RagSource[] = [],
+) {
   const config = getAIConfig();
   const prompt = `你是一名中文简历 ATS 优化专家。请基于候选人简历与目标岗位描述，输出中文分析结论。
+${buildRagSection(ragContext)}
 
 Resume Summary: ${resume.summary || 'Not provided'}
 Job Title: ${resume.jobTitle || 'Not specified'}
@@ -157,12 +177,18 @@ Skills: ${(resume.skills || []).map((s) => s.name).join(', ')}
     missingKeywords: parsed.missingKeywords || parsed.missing_keywords || [],
     recommendations: parsed.recommendations || [],
     formatIssues: parsed.formatIssues || parsed.format_issues || [],
+    ragSources,
   };
 }
 
-export async function suggestImprovements(resume: ResumeData) {
+export async function suggestImprovements(
+  resume: ResumeData,
+  ragContext?: string,
+  ragSources: RagSource[] = [],
+) {
   const config = getAIConfig();
   const prompt = `你是一名中文简历优化专家。请审阅这份简历并给出可执行建议，全部使用中文。
+${buildRagSection(ragContext)}
 
 First Name: ${resume.firstName} ${resume.lastName}
 Job Title: ${resume.jobTitle || 'Not specified'}
@@ -193,12 +219,18 @@ Target Industry: ${resume.targetIndustry || 'Technology'}
     weaknesses: parsed.weaknesses || [],
     quickWins: parsed.quickWins || parsed.quick_wins || [],
     sectionScores: parsed.sectionScores || parsed.section_scores || {},
+    ragSources,
   };
 }
 
-export async function generateInterviewQuestions(resume: ResumeData) {
+export async function generateInterviewQuestions(
+  resume: ResumeData,
+  ragContext?: string,
+  ragSources: RagSource[] = [],
+) {
   const config = getAIConfig();
   const prompt = `你是一名中国互联网求职场景的资深面试官。请根据候选人简历内容和目标岗位，生成中文面试题。
+${buildRagSection(ragContext)}
 要求：
 1) HR面：覆盖动机、职业稳定性、协作冲突、抗压、沟通、项目 ownership、期望与风险点。
 2) 技术面：深挖简历中每一项技术与项目，给出追问链路，按“30分钟高强度拷打”组织问题。
@@ -231,5 +263,6 @@ Skills: ${(resume.skills || []).map((s) => s.name).join(', ')}
     behavioralQuestions: parsed.behavioralQuestions || parsed.behavioral_questions || [],
     roleSpecificQuestions: parsed.roleSpecificQuestions || parsed.role_specific_questions || [],
     questionsToAskThem: parsed.questionsToAskThem || parsed.questions_to_ask_them || [],
+    ragSources,
   };
 }

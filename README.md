@@ -76,11 +76,14 @@ ai-resume/
 
 支持队列排队、重试、失败追踪与运营统计。
 
-### 5) RAG 扩展位（已预留）
-项目已提供 `embeddings-sync` 脚本占位，可扩展：
-- 知识分块（Knowledge Chunk）
-- 向量化与回填
-- 检索增强生成（RAG）链路
+### 5) RAG 检索增强
+项目已接入轻量级 RAG 闭环：
+- `KnowledgeChunk`：使用 Prisma + PostgreSQL 存储知识片段、标签、分类与本地 embedding
+- `embeddings-sync`：将内置求职/ATS/面试/RAG 知识片段写入知识库
+- Hybrid Retrieval：结合关键词命中与本地哈希向量余弦相似度进行混合召回
+- Prompt Augmentation：在 ATS 分析、面试题生成、简历优化等任务中注入检索上下文
+
+当前 embedding 为本地轻量实现，便于开发环境零依赖运行；后续可替换为真实 Embedding Provider + pgvector / 向量数据库。
 
 ---
 

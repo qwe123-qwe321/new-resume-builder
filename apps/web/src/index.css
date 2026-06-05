@@ -126,14 +126,30 @@ body {
   line-height: 1.7 !important;
 }
 
-.resume-rich-content ul { list-style-type: disc; padding-left: 1.25rem; margin: 0.06rem 0; }
-.resume-rich-content ol { list-style-type: decimal; padding-left: 1.25rem; margin: 0.06rem 0; }
-.resume-rich-content li { margin: 0.02rem 0; }
+.resume-rich-content ul { list-style-type: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
+.resume-rich-content ol { list-style-type: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
+.resume-rich-content li { margin: 0.15rem 0; }
+.resume-rich-content p { margin: 0.25rem 0; }
 .resume-rich-content,
 .resume-rich-content * {
   font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif !important;
   font-size: 12px !important;
-  line-height: 1.1 !important;
+  line-height: 1.65 !important;
+  color: #374151 !important;
+  background: transparent !important;
+  text-shadow: none !important;
+}
+
+/* Compact variant — used for 专业技能 and below to balance density with readability */
+.resume-rich-content-compact ul { list-style-type: disc; padding-left: 1.25rem; margin: 0.15rem 0; }
+.resume-rich-content-compact ol { list-style-type: decimal; padding-left: 1.25rem; margin: 0.15rem 0; }
+.resume-rich-content-compact li { margin: 0.08rem 0; }
+.resume-rich-content-compact p { margin: 0.15rem 0; }
+.resume-rich-content-compact,
+.resume-rich-content-compact * {
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
   color: #374151 !important;
   background: transparent !important;
   text-shadow: none !important;

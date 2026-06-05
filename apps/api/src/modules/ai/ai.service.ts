@@ -2,6 +2,7 @@ import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { AiQueueService } from './ai-queue.service';
 import { getAIConfig } from './llm-client';
+import { RagService } from './rag.service';
 import {
   generateSummary,
   optimizeExperience,
@@ -36,26 +37,61 @@ export class AiService {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(forwardRef(() => AiQueueService)) private aiQueueService: AiQueueService,
+    @Inject(RagService) private ragService: RagService,
   ) {}
 
   private withJobStatus(body: GenerateBody, status: 'queued' | 'running' | 'done' | 'failed') {
     return { ...(body as Record<string, unknown>), _jobStatus: status };
   }
 
+  private buildRagQuery(normalized: Record<string, unknown>, body: GenerateBody) {
+    const skills = Array.isArray(normalized.skills)
+      ? normalized.skills.map((skill: any) => skill?.name).filter(Boolean).join(', ')
+      : '';
+    const experiences = Array.isArray(normalized.experience)
+      ? normalized.experience
+          .map((item: any) => `${item?.title || ''} ${item?.companyName || ''} ${item?.workSummary || ''}`)
+          .join('\n')
+      : '';
+    return [
+      body.action,
+      body.targetJobDescription || '',
+      normalized.targetJobTitle || normalized.jobTitle || '',
+      normalized.targetIndustry || '',
+      normalized.summary || '',
+      skills,
+      experiences,
+    ].filter(Boolean).join('\n');
+  }
+
+  private async getRagContext(normalized: Record<string, unknown>, body: GenerateBody) {
+    const hits = await this.ragService.retrieve(this.buildRagQuery(normalized, body), { topK: 5 });
+    return {
+      context: this.ragService.formatContext(hits),
+      sources: hits.map((hit) => ({
+        id: hit.id,
+        title: hit.title,
+        category: hit.category,
+        score: hit.score,
+      })),
+    };
+  }
+
   private async runAction(normalized: Record<string, unknown>, body: GenerateBody) {
+    const rag = await this.getRagContext(normalized, body);
     switch (body.action) {
       case 'generate_summary':
-        return generateSummary(normalized as any);
+        return generateSummary(normalized as any, rag.context);
       case 'optimize_experience':
-        return optimizeExperience(normalized as any, body.experienceIndex ?? 0);
+        return optimizeExperience(normalized as any, body.experienceIndex ?? 0, rag.context);
       case 'analyze_ats':
-        return analyzeATS(normalized as any, body.targetJobDescription || '');
+        return analyzeATS(normalized as any, body.targetJobDescription || '', rag.context, rag.sources);
       case 'generate_interview_questions':
-        return generateInterviewQuestions(normalized as any);
+        return generateInterviewQuestions(normalized as any, rag.context, rag.sources);
       case 'translate':
         return translateResume(normalized as any, body.targetLanguage || 'zh');
       case 'suggest_improvements':
-        return suggestImprovements(normalized as any);
+        return suggestImprovements(normalized as any, rag.context, rag.sources);
       default:
         throw new Error(`Unknown AI action: ${body.action}`);
     }

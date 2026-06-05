@@ -55,7 +55,7 @@ export function ResumePreview() {
         <section>
           <SectionHeader title="基本信息" color={themeColor} />
           <div className="mt-1.5 flex gap-2.5">
-            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 flex-1 pr-1 text-[12px] leading-[1.08]">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 flex-1 pr-1 text-[12px] leading-normal">
               <Row label="姓名" value={fullName} />
               <Row label="联系电话" value={resume?.phone || '-'} />
               <Row label="工作年限" value={(resume as { workYears?: string } | null)?.workYears || '应届生'} />
@@ -83,7 +83,7 @@ export function ResumePreview() {
         list.push({
           id: `education-${i}`,
           node: (
-            <div className="text-[12px] leading-[1.08]">
+            <div className="text-[12px] leading-normal">
               <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
                 <span className="text-[14px] font-semibold">{edu.universityName || '学校名称'}</span>
                 <span className="text-gray-800 text-center text-[12px] font-semibold">
@@ -103,7 +103,7 @@ export function ResumePreview() {
       splitRichTextHtml(professionalSkillsHtml).forEach((chunk, i) => {
         list.push({
           id: `skills-pro-${i}`,
-          node: <div className="text-[12px] leading-[1.08] resume-rich-content" dangerouslySetInnerHTML={{ __html: chunk }} />,
+          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
         });
       });
     }
@@ -135,13 +135,13 @@ export function ResumePreview() {
 
         list.push({
           id: `exp-${i}-header`,
-          node: <div className="text-[12px] leading-[1.08]">{headerNode}</div>,
+          node: <div className="text-[12px] leading-normal">{headerNode}</div>,
         });
 
         splitRichTextHtml(exp.workSummary || '').forEach((chunk, idx) => {
           list.push({
             id: `exp-${i}-summary-${idx}`,
-            node: <div className="mt-1 text-[12px] text-gray-700 resume-rich-content" dangerouslySetInnerHTML={{ __html: chunk }} />,
+            node: <div className="text-[12px] text-gray-700 resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
           });
         });
       });
@@ -154,26 +154,26 @@ export function ResumePreview() {
       splitRichTextHtml(ats).forEach((chunk, i) => {
         list.push({
           id: `campus-ats-${i}`,
-          node: <div className="text-[12px] leading-[1.08] resume-rich-content" dangerouslySetInnerHTML={{ __html: chunk }} />,
+          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
         });
       });
       splitRichTextHtml(company).forEach((chunk, i) => {
         list.push({
           id: `campus-company-${i}`,
-          node: <div className="text-[12px] leading-[1.08] resume-rich-content" dangerouslySetInnerHTML={{ __html: chunk }} />,
+          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
         });
       });
       if (certs.length > 0) {
         list.push({
           id: 'campus-certs',
-          node: <p className="text-[12px] leading-[1.08]"><span className="font-semibold">证书：</span>{certs.filter(Boolean).join('、')}</p>,
+          node: <p className="text-[12px] leading-normal"><span className="font-semibold">证书：</span>{certs.filter(Boolean).join('、')}</p>,
         });
       }
       if (langs.length > 0) {
         langs.filter(Boolean).forEach((line, i) => {
           list.push({
             id: `campus-lang-${i}`,
-            node: <div className="text-[12px] leading-[1.08] resume-rich-content" dangerouslySetInnerHTML={{ __html: line }} />,
+            node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: line }} />,
           });
         });
       }
@@ -184,7 +184,7 @@ export function ResumePreview() {
       splitRichTextHtml(resume.summary || '').forEach((chunk, i) => {
         list.push({
           id: `summary-${i}`,
-          node: <div className="text-[12px] leading-[1.08] resume-rich-content" dangerouslySetInnerHTML={{ __html: chunk }} />,
+          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
         });
       });
     }
@@ -317,12 +317,7 @@ function splitRichTextHtml(input: string): string[] {
       const el = node as HTMLElement;
       const tag = el.tagName.toLowerCase();
       if (tag === 'ul' || tag === 'ol') {
-        const lis = Array.from(el.querySelectorAll(':scope > li'));
-        if (lis.length === 0) {
-          out.push(el.outerHTML);
-          return;
-        }
-        lis.forEach((li) => out.push(`<${tag}><li>${li.innerHTML}</li></${tag}>`));
+        out.push(el.outerHTML);
         return;
       }
       out.push(el.outerHTML);
