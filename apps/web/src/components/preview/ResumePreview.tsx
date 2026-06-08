@@ -7,8 +7,14 @@ const PX_PER_MM = 3.7795275591;
 const A4_PX_HEIGHT = A4_MM_HEIGHT * PX_PER_MM;
 // A slight tolerance is used so page tails are filled more aggressively.
 const PAGE_CONTENT_HEIGHT = A4_PX_HEIGHT - 32;
+const DEFAULT_BLOCK_GAP = 12;
+const SECTION_CONTENT_GAP = 8;
+const RICH_TEXT_FIRST_GAP = 4;
+const RICH_TEXT_FRAGMENT_GAP = 3;
+const RICH_TEXT_LIST_ITEM_GAP = 1;
 
-type Block = { id: string; node: ReactElement };
+type Block = { id: string; node: ReactElement; gapBefore?: number };
+type RichTextChunk = { html: string; gapBefore?: number };
 
 export function ResumePreview() {
   const { resume, candidateType, studentExperienceType } = useResumeStore();
@@ -35,6 +41,20 @@ export function ResumePreview() {
 
   const blocks = useMemo<Block[]>(() => {
     const list: Block[] = [];
+    const pushRichTextBlocks = (
+      idPrefix: string,
+      html: string,
+      className: string,
+      firstGap = RICH_TEXT_FIRST_GAP,
+    ) => {
+      splitRichTextHtml(html).forEach((chunk, i) => {
+        list.push({
+          id: `${idPrefix}-${i}`,
+          gapBefore: i === 0 ? firstGap : chunk.gapBefore,
+          node: <div className={`${className} resume-rich-content-fragment`} dangerouslySetInnerHTML={{ __html: chunk.html }} />,
+        });
+      });
+    };
 
     list.push({
       id: 'top-bar',
@@ -82,6 +102,7 @@ export function ResumePreview() {
       educationList.forEach((edu, i) => {
         list.push({
           id: `education-${i}`,
+          gapBefore: i === 0 ? SECTION_CONTENT_GAP : DEFAULT_BLOCK_GAP,
           node: (
             <div className="text-[12px] leading-normal">
               <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
@@ -91,21 +112,16 @@ export function ResumePreview() {
                 </span>
                 <span className="text-[12px] text-gray-700 text-right">{edu.startDate || '-'} ~ {edu.endDate || '至今'}</span>
               </div>
-              {edu.description && <div className="text-[12px] text-gray-700 resume-rich-content" dangerouslySetInnerHTML={{ __html: edu.description }} />}
             </div>
           ),
         });
+        pushRichTextBlocks(`education-${i}-desc`, edu.description || '', 'text-[12px] text-gray-700 resume-rich-content', RICH_TEXT_FIRST_GAP);
       });
     }
 
     if (professionalSkillsHtml) {
       list.push({ id: 'skills-pro-title', node: <SectionHeader title="专业技能" color={themeColor} /> });
-      splitRichTextHtml(professionalSkillsHtml).forEach((chunk, i) => {
-        list.push({
-          id: `skills-pro-${i}`,
-          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
-        });
-      });
+      pushRichTextBlocks('skills-pro', professionalSkillsHtml, 'text-[12px] leading-normal resume-rich-content-compact', SECTION_CONTENT_GAP);
     }
 
     if (experienceList.length > 0) {
@@ -135,15 +151,11 @@ export function ResumePreview() {
 
         list.push({
           id: `exp-${i}-header`,
+          gapBefore: i === 0 ? SECTION_CONTENT_GAP : DEFAULT_BLOCK_GAP,
           node: <div className="text-[12px] leading-normal">{headerNode}</div>,
         });
 
-        splitRichTextHtml(exp.workSummary || '').forEach((chunk, idx) => {
-          list.push({
-            id: `exp-${i}-summary-${idx}`,
-            node: <div className="text-[12px] text-gray-700 resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
-          });
-        });
+        pushRichTextBlocks(`exp-${i}-summary`, exp.workSummary || '', 'text-[12px] text-gray-700 resume-rich-content-compact', RICH_TEXT_FIRST_GAP);
       });
     }
 
@@ -151,42 +163,26 @@ export function ResumePreview() {
       list.push({ id: 'campus-title', node: <SectionHeader title="校园经历" color={themeColor} /> });
       const ats = (resume as { atsFeedback?: string } | null)?.atsFeedback || '';
       const company = (resume as { targetCompany?: string } | null)?.targetCompany || '';
-      splitRichTextHtml(ats).forEach((chunk, i) => {
-        list.push({
-          id: `campus-ats-${i}`,
-          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
-        });
-      });
-      splitRichTextHtml(company).forEach((chunk, i) => {
-        list.push({
-          id: `campus-company-${i}`,
-          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
-        });
-      });
+      pushRichTextBlocks('campus-ats', ats, 'text-[12px] leading-normal resume-rich-content-compact', SECTION_CONTENT_GAP);
+      pushRichTextBlocks('campus-company', company, 'text-[12px] leading-normal resume-rich-content-compact', ats ? RICH_TEXT_FIRST_GAP : SECTION_CONTENT_GAP);
       if (certs.length > 0) {
         list.push({
           id: 'campus-certs',
+          gapBefore: ats || company ? DEFAULT_BLOCK_GAP : SECTION_CONTENT_GAP,
           node: <p className="text-[12px] leading-normal"><span className="font-semibold">证书：</span>{certs.filter(Boolean).join('、')}</p>,
         });
       }
       if (langs.length > 0) {
         langs.filter(Boolean).forEach((line, i) => {
-          list.push({
-            id: `campus-lang-${i}`,
-            node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: line }} />,
-          });
+          const hasEarlierCampusContent = Boolean(ats || company || certs.length > 0 || i > 0);
+          pushRichTextBlocks(`campus-lang-${i}`, line, 'text-[12px] leading-normal resume-rich-content-compact', hasEarlierCampusContent ? RICH_TEXT_FIRST_GAP : SECTION_CONTENT_GAP);
         });
       }
     }
 
     if (resume?.summary) {
       list.push({ id: 'summary-title', node: <SectionHeader title="自我评价" color={themeColor} /> });
-      splitRichTextHtml(resume.summary || '').forEach((chunk, i) => {
-        list.push({
-          id: `summary-${i}`,
-          node: <div className="text-[12px] leading-normal resume-rich-content-compact" dangerouslySetInnerHTML={{ __html: chunk }} />,
-        });
-      });
+      pushRichTextBlocks('summary', resume.summary || '', 'text-[12px] leading-normal resume-rich-content-compact', SECTION_CONTENT_GAP);
     }
 
     return list;
@@ -218,15 +214,16 @@ export function ResumePreview() {
     let used = 0;
     for (const b of blocks) {
       const h = heights.get(b.id) || 0;
-      const gap = current.length > 0 ? 12 : 0;
+      let gap = getBlockGap(b, current.length > 0);
       const blockNeed = h + gap;
       if (current.length > 0 && used + blockNeed > PAGE_CONTENT_HEIGHT) {
         nextPages.push(current);
         current = [];
         used = 0;
+        gap = 0;
       }
       current.push(b);
-      used += blockNeed;
+      used += h + gap;
     }
     if (current.length > 0) nextPages.push(current);
     if (nextPages.length === 0) nextPages.push([]);
@@ -238,11 +235,8 @@ export function ResumePreview() {
         changed = false;
         const candidate = nextPages[i + 1][0];
         const prev = nextPages[i];
-        const prevHeight = prev.reduce((sum, b, idx) => {
-          const hh = heights.get(b.id) || 0;
-          return sum + hh + (idx > 0 ? 12 : 0);
-        }, 0);
-        const candHeight = (heights.get(candidate.id) || 0) + (prev.length > 0 ? 12 : 0);
+        const prevHeight = getPageHeight(prev, heights);
+        const candHeight = (heights.get(candidate.id) || 0) + getBlockGap(candidate, prev.length > 0);
         if (prevHeight + candHeight <= PAGE_CONTENT_HEIGHT) {
           prev.push(candidate);
           nextPages[i + 1].shift();
@@ -270,7 +264,7 @@ export function ResumePreview() {
       {typeof document !== 'undefined' &&
         createPortal(
           <div className="a4-measure-root" ref={measureRootRef}>
-            <div className="a4-measure-inner px-8 py-5 space-y-3">
+            <div className="a4-measure-inner px-8 py-5">
               {blocks.map((b) => (
                 <div key={b.id} data-block-id={b.id}>
                   {b.node}
@@ -284,9 +278,11 @@ export function ResumePreview() {
       <div className="a4-pages-list" style={{ visibility: ready ? 'visible' : 'hidden' }}>
         {(pages.length > 0 ? pages : [blocks]).map((page, index) => (
           <div key={index} className="a4-page">
-            <div className="px-8 py-5 space-y-3">
-              {page.map((b) => (
-                <div key={b.id}>{b.node}</div>
+            <div className="px-8 py-5">
+              {page.map((b, blockIndex) => (
+                <div key={b.id} style={getBlockStyle(b, blockIndex)}>
+                  {b.node}
+                </div>
               ))}
             </div>
           </div>
@@ -298,34 +294,93 @@ export function ResumePreview() {
   );
 }
 
-function splitRichTextHtml(input: string): string[] {
+function getBlockGap(block: Block, hasPreviousBlock: boolean) {
+  if (!hasPreviousBlock) return 0;
+  return block.gapBefore ?? DEFAULT_BLOCK_GAP;
+}
+
+function getBlockStyle(block: Block, index: number) {
+  const marginTop = getBlockGap(block, index > 0);
+  return marginTop > 0 ? { marginTop } : undefined;
+}
+
+function getPageHeight(page: Block[], heights: Map<string, number>) {
+  return page.reduce((sum, b, idx) => {
+    const height = heights.get(b.id) || 0;
+    return sum + height + getBlockGap(b, idx > 0);
+  }, 0);
+}
+
+function splitRichTextHtml(input: string): RichTextChunk[] {
   const html = String(input || '').trim();
   if (!html) return [];
-  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return [html];
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return [{ html, gapBefore: RICH_TEXT_FRAGMENT_GAP }];
 
   try {
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const out: string[] = [];
+    const out: RichTextChunk[] = [];
     const nodes = Array.from(doc.body.childNodes);
-    nodes.forEach((node) => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const text = (node.textContent || '').trim();
-        if (text) out.push(`<p>${text}</p>`);
-        return;
-      }
-      if (node.nodeType !== Node.ELEMENT_NODE) return;
-      const el = node as HTMLElement;
-      const tag = el.tagName.toLowerCase();
-      if (tag === 'ul' || tag === 'ol') {
-        out.push(el.outerHTML);
-        return;
-      }
-      out.push(el.outerHTML);
-    });
-    return out.length > 0 ? out : [html];
+    nodes.forEach((node) => out.push(...splitRichTextNode(node)));
+    return out.length > 0 ? out : [{ html, gapBefore: RICH_TEXT_FRAGMENT_GAP }];
   } catch {
-    return [html];
+    return [{ html, gapBefore: RICH_TEXT_FRAGMENT_GAP }];
   }
+}
+
+function splitRichTextNode(node: ChildNode): RichTextChunk[] {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = (node.textContent || '').trim();
+    return text ? [{ html: `<p>${escapeHtml(text)}</p>`, gapBefore: RICH_TEXT_FRAGMENT_GAP }] : [];
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) return [];
+
+  const el = node as HTMLElement;
+  const tag = el.tagName.toLowerCase();
+
+  if (tag === 'ul' || tag === 'ol') {
+    return splitListElement(el, tag);
+  }
+
+  if (tag === 'li') {
+    return [{ html: `<ul>${el.outerHTML}</ul>`, gapBefore: RICH_TEXT_LIST_ITEM_GAP }];
+  }
+
+  if (tag === 'div' && hasBlockChildren(el)) {
+    const chunks = Array.from(el.childNodes).flatMap((child) => splitRichTextNode(child));
+    return chunks.length > 0 ? chunks : [{ html: el.outerHTML, gapBefore: RICH_TEXT_FRAGMENT_GAP }];
+  }
+
+  return [{ html: el.outerHTML, gapBefore: RICH_TEXT_FRAGMENT_GAP }];
+}
+
+function splitListElement(el: HTMLElement, tag: string): RichTextChunk[] {
+  const items = Array.from(el.children).filter((child) => child.tagName.toLowerCase() === 'li');
+  if (items.length === 0) return [{ html: el.outerHTML, gapBefore: RICH_TEXT_FRAGMENT_GAP }];
+
+  const parsedStart = Number.parseInt(el.getAttribute('start') || '1', 10);
+  const start = Number.isFinite(parsedStart) ? parsedStart : 1;
+
+  return items.map((item, index) => {
+    const startAttribute = tag === 'ol' ? ` start="${start + index}"` : '';
+    return {
+      html: `<${tag}${startAttribute}>${item.outerHTML}</${tag}>`,
+      gapBefore: RICH_TEXT_LIST_ITEM_GAP,
+    };
+  });
+}
+
+function hasBlockChildren(el: HTMLElement) {
+  return Array.from(el.children).some((child) => ['div', 'p', 'ul', 'ol'].includes(child.tagName.toLowerCase()));
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function SectionHeader({ title, color }: { title: string; color: string }) {

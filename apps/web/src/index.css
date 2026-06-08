@@ -155,6 +155,19 @@ body {
   text-shadow: none !important;
 }
 
+.resume-rich-content-fragment > p,
+.resume-rich-content-fragment > ul,
+.resume-rich-content-fragment > ol {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.resume-rich-content-fragment > ul > li,
+.resume-rich-content-fragment > ol > li {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 @media print {
   @page { size: A4; margin: 0; }
   body * {
