@@ -6,7 +6,6 @@ import { z } from 'zod';
 
 export const ExperienceSchema = z.object({
   id: z.string().optional(),
-  experienceType: z.enum(['internship', 'project', 'professional']).optional(),
   title: z.string().min(1, 'Job title is required'),
   companyName: z.string().min(1, 'Company name is required'),
   city: z.string().optional(),

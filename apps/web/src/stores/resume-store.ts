@@ -27,55 +27,38 @@ interface ResumeState {
 
   isDirty: boolean;
   setIsDirty: (dirty: boolean) => void;
+
+  experienceDrafts: {
+    student_internship: Experience[];
+    student_project: Experience[];
+    professional: Experience[];
+  };
 }
 
 function cloneExperiences(list: Experience[] | undefined): Experience[] {
   return (list || []).map((item) => ({ ...item }));
 }
 
-function getExperienceTypeFromId(id: string | undefined): 'internship' | 'project' | 'professional' | undefined {
-  if (!id) return undefined;
-  if (id.startsWith('internship:')) return 'internship';
-  if (id.startsWith('project:')) return 'project';
-  if (id.startsWith('professional:')) return 'professional';
-  return undefined;
-}
-
-function getCurrentExperienceType(
+function getModeKey(
   candidateType: 'student' | 'professional',
   studentExperienceType: 'internship' | 'project',
-): 'internship' | 'project' | 'professional' {
+): 'student_internship' | 'student_project' | 'professional' {
   if (candidateType === 'professional') return 'professional';
-  return studentExperienceType;
-}
-
-function normalizeExperiences(
-  list: Experience[] | undefined,
-  candidateType: 'student' | 'professional',
-  studentExperienceType: 'internship' | 'project',
-): Experience[] {
-  const fallbackType = getCurrentExperienceType(candidateType, studentExperienceType);
-  return cloneExperiences(list).map((item) => ({
-    ...item,
-    experienceType: item.experienceType || getExperienceTypeFromId(item.id) || fallbackType,
-  }));
+  return studentExperienceType === 'internship' ? 'student_internship' : 'student_project';
 }
 
 export const useResumeStore = create<ResumeState>((set) => ({
   resume: null,
   setResume: (resume) =>
     set((state) => {
-      const nextResume = resume
-        ? {
-            ...resume,
-            experience: normalizeExperiences(
-              resume.experience as Experience[],
-              state.candidateType,
-              state.studentExperienceType,
-            ),
-          }
-        : null;
-      return { resume: nextResume, isDirty: false };
+      const modeKey = getModeKey(state.candidateType, state.studentExperienceType);
+      const nextDrafts = {
+        student_internship: [] as Experience[],
+        student_project: [] as Experience[],
+        professional: [] as Experience[],
+      };
+      nextDrafts[modeKey] = cloneExperiences((resume?.experience || []) as Experience[]);
+      return { resume, isDirty: false, experienceDrafts: nextDrafts };
     }),
   updateField: (key, value) =>
     set((state) => ({
@@ -88,21 +71,12 @@ export const useResumeStore = create<ResumeState>((set) => ({
       if (!state.resume) return state;
       const nextExperience = [
         ...(state.resume.experience || []),
-        {
-          experienceType: getCurrentExperienceType(state.candidateType, state.studentExperienceType),
-          title: '',
-          companyName: '',
-          city: '',
-          state: '',
-          startDate: '',
-          endDate: '',
-          workSummary: '',
-          currentlyWorking: false,
-          aiGenerated: false,
-        },
+        { title: '', companyName: '', city: '', state: '', startDate: '', endDate: '', workSummary: '', currentlyWorking: false, aiGenerated: false },
       ];
+      const modeKey = getModeKey(state.candidateType, state.studentExperienceType);
       return {
         resume: { ...state.resume, experience: nextExperience },
+        experienceDrafts: { ...state.experienceDrafts, [modeKey]: cloneExperiences(nextExperience as Experience[]) },
         isDirty: true,
       };
     }),
@@ -111,8 +85,10 @@ export const useResumeStore = create<ResumeState>((set) => ({
       if (!state.resume) return state;
       const exp = [...(state.resume.experience || [])];
       exp[index] = { ...exp[index], ...data };
+      const modeKey = getModeKey(state.candidateType, state.studentExperienceType);
       return {
         resume: { ...state.resume, experience: exp },
+        experienceDrafts: { ...state.experienceDrafts, [modeKey]: cloneExperiences(exp as Experience[]) },
         isDirty: true,
       };
     }),
@@ -120,11 +96,13 @@ export const useResumeStore = create<ResumeState>((set) => ({
     set((state) => {
       if (!state.resume) return state;
       const next = (state.resume.experience || []).filter((_, i) => i !== index);
+      const modeKey = getModeKey(state.candidateType, state.studentExperienceType);
       return {
         resume: {
           ...state.resume,
           experience: next,
         },
+        experienceDrafts: { ...state.experienceDrafts, [modeKey]: cloneExperiences(next as Experience[]) },
         isDirty: true,
       };
     }),
@@ -191,15 +169,55 @@ export const useResumeStore = create<ResumeState>((set) => ({
   setActiveSection: (index) => set({ activeSection: index }),
   candidateType: 'student',
   setCandidateType: (type) =>
-    set(() => ({
+    set((state) => ({
       candidateType: type,
+      studentExperienceType: state.studentExperienceType,
+      resume: state.resume
+        ? {
+            ...state.resume,
+            experience: cloneExperiences(
+              state.experienceDrafts[
+                getModeKey(type, state.studentExperienceType)
+              ],
+            ),
+          }
+        : null,
+      experienceDrafts: (() => {
+        const currentKey = getModeKey(state.candidateType, state.studentExperienceType);
+        return {
+          ...state.experienceDrafts,
+          [currentKey]: cloneExperiences((state.resume?.experience || []) as Experience[]),
+        };
+      })(),
+      isDirty: true,
     })),
   studentExperienceType: 'project',
   setStudentExperienceType: (type) =>
-    set(() => ({
+    set((state) => ({
       studentExperienceType: type,
+      resume: state.resume
+        ? {
+            ...state.resume,
+            experience: cloneExperiences(
+              state.experienceDrafts[getModeKey('student', type)],
+            ),
+          }
+        : null,
+      experienceDrafts: (() => {
+        const currentKey = getModeKey(state.candidateType, state.studentExperienceType);
+        return {
+          ...state.experienceDrafts,
+          [currentKey]: cloneExperiences((state.resume?.experience || []) as Experience[]),
+        };
+      })(),
+      isDirty: true,
     })),
 
   isDirty: false,
   setIsDirty: (dirty) => set({ isDirty: dirty }),
+  experienceDrafts: {
+    student_internship: [],
+    student_project: [],
+    professional: [],
+  },
 }));
