@@ -42,6 +42,12 @@ function normalizeRating(value: unknown): number {
   return Math.max(1, Math.min(5, Math.round(n)));
 }
 
+function normalizeExperienceType(value: unknown): string | null {
+  return value === 'internship' || value === 'project' || value === 'professional'
+    ? value
+    : null;
+}
+
 function normalizeFields<T extends Record<string, unknown>>(data: T): T {
   const result = { ...data } as Record<string, unknown>;
   if ('experiences' in result) {
@@ -117,6 +123,7 @@ export class ResumesService {
         await tx.resumeExperience.createMany({
           data: experienceList.map((item, index) => ({
             resumeId: id,
+            experienceType: normalizeExperienceType(item.experienceType),
             title: String(item.title || ''),
             companyName: String(item.companyName || ''),
             city: item.city ? String(item.city) : null,

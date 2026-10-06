@@ -21,7 +21,10 @@ export function ExperienceForm() {
 
   if (!resume) return null;
 
-  const experiences = resume.experience || [];
+  const currentExperienceType = candidateType === 'professional' ? 'professional' : studentExperienceType;
+  const experiences = (resume.experience || [])
+    .map((exp, index) => ({ exp, index }))
+    .filter(({ exp }) => (exp.experienceType || currentExperienceType) === currentExperienceType);
   const sectionTitle =
     candidateType === 'professional'
       ? '工作经历'
@@ -60,8 +63,8 @@ export function ExperienceForm() {
       </div>
 
       <AnimatePresence mode="popLayout">
-        {experiences.map((exp, index) => (
-          <motion.div key={index} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="glass rounded-xl overflow-hidden">
+        {experiences.map(({ exp, index }) => (
+          <motion.div key={exp.id || `${exp.experienceType || currentExperienceType}-${index}`} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="glass rounded-xl overflow-hidden">
             <button type="button" onClick={() => setExpandedIndex(expandedIndex === index ? null : index)} className="w-full flex items-center gap-3 p-4 hover:bg-accent/30 transition-colors text-left">
               <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-accent text-muted-foreground"><GripVertical className="h-4 w-4" /></div>
               <div className="flex-1 min-w-0">
@@ -169,7 +172,7 @@ export function ExperienceForm() {
         ))}
       </AnimatePresence>
 
-      <Button variant="outline" onClick={() => { addExperience(); setExpandedIndex(experiences.length); }} className="w-full gap-2 border-dashed border-2 hover:border-primary hover:bg-primary/5 h-12">
+      <Button variant="outline" onClick={() => { addExperience(); setExpandedIndex((resume.experience || []).length); }} className="w-full gap-2 border-dashed border-2 hover:border-primary hover:bg-primary/5 h-12">
         <Plus className="h-4 w-4" /> 添加{sectionTitle}
       </Button>
 

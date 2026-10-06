@@ -78,6 +78,7 @@ model ResumeExperience {
   id               String  @id @default(uuid())
   resumeId         String
   resume           Resume  @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  experienceType   String?
   title            String
   companyName      String
   city             String?
