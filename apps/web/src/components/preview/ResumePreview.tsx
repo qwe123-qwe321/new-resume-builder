@@ -15,9 +15,18 @@ const RICH_TEXT_LIST_ITEM_GAP = 1;
 
 type Block = { id: string; node: ReactElement; gapBefore?: number };
 type RichTextChunk = { html: string; gapBefore?: number };
+type ExperienceKind = 'internship' | 'project' | 'professional';
+
+function getExperienceKindFromId(id: string | undefined): ExperienceKind | undefined {
+  if (!id) return undefined;
+  if (id.startsWith('internship:')) return 'internship';
+  if (id.startsWith('project:')) return 'project';
+  if (id.startsWith('professional:')) return 'professional';
+  return undefined;
+}
 
 export function ResumePreview() {
-  const { resume, candidateType, studentExperienceType } = useResumeStore();
+  const { resume, candidateType } = useResumeStore();
   const measureRootRef = useRef<HTMLDivElement | null>(null);
   const [pages, setPages] = useState<Block[][]>([]);
   const [ready, setReady] = useState(false);
@@ -30,14 +39,6 @@ export function ResumePreview() {
   const langs = Array.isArray(resume?.languages) ? resume.languages : [];
   const professionalSkillsHtml = (resume as { targetIndustry?: string } | null)?.targetIndustry || '';
   const photoUrl = (resume as { photoUrl?: string } | null)?.photoUrl;
-
-  const isProjectMode = candidateType === 'student' && studentExperienceType === 'project';
-  const experienceSectionTitle =
-    candidateType === 'professional'
-      ? '工作经历'
-      : studentExperienceType === 'internship'
-        ? '实习经历'
-        : '项目经历';
 
   const blocks = useMemo<Block[]>(() => {
     const list: Block[] = [];
@@ -53,6 +54,50 @@ export function ResumePreview() {
           gapBefore: i === 0 ? firstGap : chunk.gapBefore,
           node: <div className={`${className} resume-rich-content-fragment`} dangerouslySetInnerHTML={{ __html: chunk.html }} />,
         });
+      });
+    };
+    const getEffectiveExperienceKind = (exp: (typeof experienceList)[number]) =>
+      getExperienceKindFromId(exp.id)
+        || (candidateType === 'professional' ? 'professional' : exp.aiGenerated ? 'project' : 'internship');
+    const addExperienceSection = (
+      title: string,
+      items: typeof experienceList,
+      projectMode: boolean,
+      idPrefix: string,
+    ) => {
+      if (items.length === 0) return;
+
+      list.push({ id: `${idPrefix}-title`, node: <SectionHeader title={title} color={themeColor} /> });
+      items.forEach((exp, i) => {
+        const headerNode = projectMode ? (
+          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+            <span className="text-[14px] font-semibold">{exp.companyName || ''}</span>
+            <span className="text-[12px] text-gray-800 text-center font-semibold">{exp.title || ''}</span>
+            <span className="text-[12px] text-gray-700 text-right">
+              {(exp.startDate || exp.endDate) ? `${exp.startDate || '-'} ~ ${exp.endDate || '至今'}` : ''}
+            </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+            <span className="text-[14px] font-semibold">{exp.companyName || ''}</span>
+            <span className="text-[12px] text-gray-800 text-center font-semibold">
+              {exp.title || exp.city ? `${exp.title || ''}|${exp.city || ''}` : ''}
+            </span>
+            <span className="text-[12px] text-gray-700 text-right">
+              {exp.state || (exp.startDate || exp.endDate)
+                ? `${exp.state || ''}${exp.state && (exp.startDate || exp.endDate) ? '|' : ''}${(exp.startDate || exp.endDate) ? `${exp.startDate || '-'} ~ ${exp.endDate || '至今'}` : ''}`
+                : ''}
+            </span>
+          </div>
+        );
+
+        list.push({
+          id: `${idPrefix}-${i}-header`,
+          gapBefore: i === 0 ? SECTION_CONTENT_GAP : DEFAULT_BLOCK_GAP,
+          node: <div className="text-[12px] leading-normal">{headerNode}</div>,
+        });
+
+        pushRichTextBlocks(`${idPrefix}-${i}-summary`, exp.workSummary || '', 'text-[12px] text-gray-700 resume-rich-content-compact', RICH_TEXT_FIRST_GAP);
       });
     };
 
@@ -124,39 +169,26 @@ export function ResumePreview() {
       pushRichTextBlocks('skills-pro', professionalSkillsHtml, 'text-[12px] leading-normal resume-rich-content-compact', SECTION_CONTENT_GAP);
     }
 
-    if (experienceList.length > 0) {
-      list.push({ id: 'exp-title', node: <SectionHeader title={experienceSectionTitle} color={themeColor} /> });
-      experienceList.forEach((exp, i) => {
-        const headerNode = isProjectMode ? (
-          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-            <span className="text-[14px] font-semibold">{exp.companyName || ''}</span>
-            <span className="text-[12px] text-gray-800 text-center font-semibold">{exp.title || ''}</span>
-            <span className="text-[12px] text-gray-700 text-right">
-              {(exp.startDate || exp.endDate) ? `${exp.startDate || '-'} ~ ${exp.endDate || '至今'}` : ''}
-            </span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-            <span className="text-[14px] font-semibold">{exp.companyName || ''}</span>
-            <span className="text-[12px] text-gray-800 text-center font-semibold">
-              {exp.title || exp.city ? `${exp.title || ''}|${exp.city || ''}` : ''}
-            </span>
-            <span className="text-[12px] text-gray-700 text-right">
-              {exp.state || (exp.startDate || exp.endDate)
-                ? `${exp.state || ''}${exp.state && (exp.startDate || exp.endDate) ? '|' : ''}${(exp.startDate || exp.endDate) ? `${exp.startDate || '-'} ~ ${exp.endDate || '至今'}` : ''}`
-                : ''}
-            </span>
-          </div>
-        );
-
-        list.push({
-          id: `exp-${i}-header`,
-          gapBefore: i === 0 ? SECTION_CONTENT_GAP : DEFAULT_BLOCK_GAP,
-          node: <div className="text-[12px] leading-normal">{headerNode}</div>,
-        });
-
-        pushRichTextBlocks(`exp-${i}-summary`, exp.workSummary || '', 'text-[12px] text-gray-700 resume-rich-content-compact', RICH_TEXT_FIRST_GAP);
-      });
+    if (candidateType === 'professional') {
+      addExperienceSection(
+        '工作经历',
+        experienceList.filter((exp) => getEffectiveExperienceKind(exp) === 'professional'),
+        false,
+        'exp-professional',
+      );
+    } else {
+      addExperienceSection(
+        '实习经历',
+        experienceList.filter((exp) => getEffectiveExperienceKind(exp) === 'internship'),
+        false,
+        'exp-internship',
+      );
+      addExperienceSection(
+        '项目经历',
+        experienceList.filter((exp) => getEffectiveExperienceKind(exp) === 'project'),
+        true,
+        'exp-project',
+      );
     }
 
     if ((resume as { atsFeedback?: string } | null)?.atsFeedback || (resume as { targetCompany?: string } | null)?.targetCompany || certs.length > 0 || langs.length > 0) {
@@ -186,7 +218,7 @@ export function ResumePreview() {
     }
 
     return list;
-  }, [themeColor, fullName, resume, educationList, professionalSkillsHtml, experienceList, experienceSectionTitle, isProjectMode, certs, langs, photoUrl]);
+  }, [themeColor, fullName, resume, educationList, professionalSkillsHtml, experienceList, candidateType, certs, langs, photoUrl]);
 
   useLayoutEffect(() => {
     if (!resume) {

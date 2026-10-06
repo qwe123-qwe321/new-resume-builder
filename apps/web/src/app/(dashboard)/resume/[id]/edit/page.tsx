@@ -89,6 +89,23 @@ function sanitizeResumeRichText(resume: any) {
   return next;
 }
 
+function sanitizeResumeForSave(resume: any) {
+  if (!resume || typeof resume !== 'object') return resume;
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return {
+    ...resume,
+    experience: Array.isArray(resume.experience)
+      ? resume.experience.map((exp: any) => {
+          const rawId = typeof exp.id === 'string'
+            ? exp.id.replace(/^(internship|project|professional):/, '')
+            : '';
+          const { id: _id, ...rest } = exp;
+          return uuidPattern.test(rawId) ? { ...rest, id: rawId } : rest;
+        })
+      : [],
+  };
+}
+
 export function EditResumePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -120,26 +137,28 @@ export function EditResumePage() {
       try {
         const token = await getToken();
         const { api } = await import('@/lib/api');
-        await api.resumes.update(id, resume, token);
+        const payload = sanitizeResumeForSave(resume);
+        await api.resumes.update(id, payload, token);
+        setResume(payload);
         setIsDirty(false);
         if (!silent) toast.success('已保存更改');
         return true;
-      } catch {
-        if (!silent) toast.error('保存失败');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '保存失败';
+        toast.error(message);
         return false;
       } finally {
         setSaving(false);
       }
     },
-    [id, resume, getToken, setIsDirty],
+    [id, resume, getToken, setResume, setIsDirty],
   );
 
   const goToSection = useCallback(
     async (nextSection: number) => {
       if (saving) return;
       if (isDirty) {
-        const ok = await handleSave(true);
-        if (!ok) return;
+        await handleSave(true);
       }
       setActiveSection(nextSection);
     },
@@ -159,7 +178,7 @@ export function EditResumePage() {
     try {
       const token = await getToken();
       const { api } = await import('@/lib/api');
-      const payload = normalizeBeforeExport ? sanitizeResumeRichText(resume) : resume;
+      const payload = sanitizeResumeForSave(normalizeBeforeExport ? sanitizeResumeRichText(resume) : resume);
       await api.resumes.update(id, payload, token);
       setResume(payload);
       setIsDirty(false);

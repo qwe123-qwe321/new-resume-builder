@@ -42,6 +42,14 @@ function normalizeRating(value: unknown): number {
   return Math.max(1, Math.min(5, Math.round(n)));
 }
 
+function getExperienceKindFromId(value: unknown): 'internship' | 'project' | 'professional' | null {
+  const id = typeof value === 'string' ? value : '';
+  if (id.startsWith('internship:')) return 'internship';
+  if (id.startsWith('project:')) return 'project';
+  if (id.startsWith('professional:')) return 'professional';
+  return null;
+}
+
 function normalizeFields<T extends Record<string, unknown>>(data: T): T {
   const result = { ...data } as Record<string, unknown>;
   if ('experiences' in result) {
@@ -115,19 +123,22 @@ export class ResumesService {
 
       if (experienceList.length > 0) {
         await tx.resumeExperience.createMany({
-          data: experienceList.map((item, index) => ({
-            resumeId: id,
-            title: String(item.title || ''),
-            companyName: String(item.companyName || ''),
-            city: item.city ? String(item.city) : null,
-            state: item.state ? String(item.state) : null,
-            startDate: String(item.startDate || ''),
-            endDate: item.endDate ? String(item.endDate) : null,
-            currentlyWorking: Boolean(item.currentlyWorking),
-            workSummary: item.workSummary ? String(item.workSummary) : null,
-            aiGenerated: Boolean(item.aiGenerated),
-            sortOrder: index,
-          })),
+          data: experienceList.map((item, index) => {
+            const kindFromLegacyId = getExperienceKindFromId(item.id);
+            return {
+              resumeId: id,
+              title: String(item.title || ''),
+              companyName: String(item.companyName || ''),
+              city: item.city ? String(item.city) : null,
+              state: item.state ? String(item.state) : null,
+              startDate: String(item.startDate || ''),
+              endDate: item.endDate ? String(item.endDate) : null,
+              currentlyWorking: Boolean(item.currentlyWorking),
+              workSummary: item.workSummary ? String(item.workSummary) : null,
+              aiGenerated: kindFromLegacyId ? kindFromLegacyId === 'project' : Boolean(item.aiGenerated),
+              sortOrder: index,
+            };
+          }),
         });
       }
 

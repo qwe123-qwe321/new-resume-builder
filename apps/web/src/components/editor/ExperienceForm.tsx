@@ -5,6 +5,16 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RichTextEditor } from './RichTextEditor';
 
+type ExperienceKind = 'internship' | 'project' | 'professional';
+
+function getExperienceKindFromId(id: string | undefined): ExperienceKind | undefined {
+  if (!id) return undefined;
+  if (id.startsWith('internship:')) return 'internship';
+  if (id.startsWith('project:')) return 'project';
+  if (id.startsWith('professional:')) return 'professional';
+  return undefined;
+}
+
 export function ExperienceForm() {
   const {
     resume,
@@ -13,28 +23,147 @@ export function ExperienceForm() {
     removeExperience,
     candidateType,
     setCandidateType,
-    studentExperienceType,
-    setStudentExperienceType,
   } = useResumeStore();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
   const [exampleOpen, setExampleOpen] = useState(false);
 
   if (!resume) return null;
 
-  const experiences = resume.experience || [];
-  const sectionTitle =
-    candidateType === 'professional'
-      ? '工作经历'
-      : studentExperienceType === 'internship'
-        ? '实习经历'
-        : '项目经历';
-  const rolePlaceholder =
-    candidateType === 'professional'
-      ? '前端/后端/架构等职位名称'
-      : studentExperienceType === 'internship'
-        ? '前端/后端/架构等职位名称'
-        : '例如：项目负责人 / 开发成员';
-  const isProjectMode = candidateType === 'student' && studentExperienceType === 'project';
+  const indexedExperiences = (resume.experience || []).map((exp, index) => ({ exp, index }));
+  const getEffectiveExperienceKind = (exp: (typeof indexedExperiences)[number]['exp']) =>
+    getExperienceKindFromId(exp.id)
+      || (candidateType === 'professional' ? 'professional' : exp.aiGenerated ? 'project' : 'internship');
+  const getItems = (kind: ExperienceKind) =>
+    indexedExperiences.filter(({ exp }) => getEffectiveExperienceKind(exp) === kind);
+
+  const renderExperienceSection = (
+    sectionTitle: string,
+    kind: ExperienceKind,
+    isProjectMode: boolean,
+  ) => {
+    const experiences = getItems(kind);
+    const rolePlaceholder = isProjectMode ? '例如：项目负责人 / 开发成员' : '前端/后端/架构等职位名称';
+
+    return (
+      <section className="space-y-4">
+        <h3 className="text-base font-semibold text-foreground">{sectionTitle}</h3>
+
+        <AnimatePresence mode="popLayout">
+          {experiences.map(({ exp, index }) => (
+            <motion.div key={exp.id || index} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="glass rounded-xl overflow-hidden">
+              <button type="button" onClick={() => setExpandedIndex(expandedIndex === index ? null : index)} className="w-full flex items-center gap-3 p-4 hover:bg-accent/30 transition-colors text-left">
+                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-accent text-muted-foreground"><GripVertical className="h-4 w-4" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-foreground truncate">{isProjectMode ? (exp.companyName || '新项目') : (exp.companyName || '新单位')}</p>
+                  <p className="text-xs text-muted-foreground truncate">{exp.title || '担任角色'} {exp.startDate && `· ${exp.startDate}`}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <svg className={cn('h-5 w-5 text-muted-foreground transition-transform duration-200', expandedIndex === index && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {expandedIndex === index && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                    <div className="px-4 pb-4 pt-2 border-t border-border space-y-4">
+                      {experiences.length > 1 && (
+                        <div className="flex justify-end">
+                          <Button variant="outline" size="sm" onClick={() => removeExperience(index)} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4 mr-2" /> 删除
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        {isProjectMode ? (
+                          <>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">项目名称</Label>
+                              <div className="relative"><Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input value={exp.companyName || ''} onChange={(e) => updateExperience(index, { companyName: e.target.value })} placeholder="例如：校园二手交易平台" className="pl-10 bg-accent/50" />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">担任角色</Label>
+                              <div className="relative"><Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input value={exp.title || ''} onChange={(e) => updateExperience(index, { title: e.target.value })} placeholder={rolePlaceholder} className="pl-10 bg-accent/50" />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">省份</Label>
+                              <div className="relative"><MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input value={exp.city || ''} onChange={(e) => updateExperience(index, { city: e.target.value })} placeholder="例如：江苏省" className="pl-10 bg-accent/50" />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">市/区</Label>
+                              <Input value={exp.state || ''} onChange={(e) => updateExperience(index, { state: e.target.value })} placeholder="例如：南京市鼓楼区" className="bg-accent/50" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">公司名称</Label>
+                              <div className="relative"><Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input value={exp.companyName || ''} onChange={(e) => updateExperience(index, { companyName: e.target.value })} placeholder="例如：某某科技有限公司" className="pl-10 bg-accent/50" />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">工作地点</Label>
+                              <div className="relative"><Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input value={exp.state || ''} onChange={(e) => updateExperience(index, { state: e.target.value })} placeholder="例如：上海市浦东新区" className="pl-10 bg-accent/50" />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">担任角色</Label>
+                              <div className="relative"><Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input value={exp.title || ''} onChange={(e) => updateExperience(index, { title: e.target.value })} placeholder={rolePlaceholder} className="pl-10 bg-accent/50" />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">部门/业务方向</Label>
+                              <div className="relative"><MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input value={exp.city || ''} onChange={(e) => updateExperience(index, { city: e.target.value })} placeholder="例如：支付中台/交易系统" className="pl-10 bg-accent/50" />
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1.5 block">开始时间</Label>
+                          <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input type="month" value={exp.startDate || ''} onChange={(e) => updateExperience(index, { startDate: e.target.value })} className="pl-10 bg-accent/50" />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1.5 block">结束时间</Label>
+                          <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input type="month" value={exp.endDate || ''} onChange={(e) => updateExperience(index, { endDate: e.target.value })} placeholder="至今" disabled={exp.currentlyWorking} className="pl-10 bg-accent/50 disabled:opacity-50" />
+                          </div>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <Label className="text-xs text-muted-foreground block">工作内容与成果</Label>
+                            <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setExampleOpen(true)}>示例</Button>
+                          </div>
+                          <RichTextEditor value={exp.workSummary || ''} onChange={(html) => updateExperience(index, { workSummary: html })} placeholder="请填写工作内容与成果（点击右上角“示例”查看参考）" minHeight={180} />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        <Button variant="outline" onClick={() => { addExperience(kind); setExpandedIndex((resume.experience || []).length); }} className="w-full gap-2 border-dashed border-2 hover:border-primary hover:bg-primary/5 h-12">
+          <Plus className="h-4 w-4" /> 添加{sectionTitle}
+        </Button>
+      </section>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -43,135 +172,22 @@ export function ExperienceForm() {
           <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <Briefcase className="h-5 w-5 text-primary" />
           </div>
-          {sectionTitle}
+          经历模块
         </h2>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-accent/40 p-1">
-            <Button type="button" variant={candidateType === 'student' ? 'default' : 'ghost'} size="sm" onClick={() => setCandidateType('student')} className="flex-1">学生</Button>
-            <Button type="button" variant={candidateType === 'professional' ? 'default' : 'ghost'} size="sm" onClick={() => setCandidateType('professional')} className="flex-1">正式工作者</Button>
-          </div>
-          {candidateType === 'student' && (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-accent/40 p-1">
-              <Button type="button" variant={studentExperienceType === 'internship' ? 'default' : 'ghost'} size="sm" onClick={() => setStudentExperienceType('internship')} className="flex-1">实习经历</Button>
-              <Button type="button" variant={studentExperienceType === 'project' ? 'default' : 'ghost'} size="sm" onClick={() => setStudentExperienceType('project')} className="flex-1">项目经历</Button>
-            </div>
-          )}
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-accent/40 p-1">
+          <Button type="button" variant={candidateType === 'student' ? 'default' : 'ghost'} size="sm" onClick={() => setCandidateType('student')} className="flex-1">学生</Button>
+          <Button type="button" variant={candidateType === 'professional' ? 'default' : 'ghost'} size="sm" onClick={() => setCandidateType('professional')} className="flex-1">正式工作者</Button>
         </div>
       </div>
 
-      <AnimatePresence mode="popLayout">
-        {experiences.map((exp, index) => (
-          <motion.div key={index} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="glass rounded-xl overflow-hidden">
-            <button type="button" onClick={() => setExpandedIndex(expandedIndex === index ? null : index)} className="w-full flex items-center gap-3 p-4 hover:bg-accent/30 transition-colors text-left">
-              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-accent text-muted-foreground"><GripVertical className="h-4 w-4" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-foreground truncate">{isProjectMode ? (exp.companyName || '新项目') : (exp.companyName || '新单位')}</p>
-                <p className="text-xs text-muted-foreground truncate">{exp.title || '担任角色'} {exp.startDate && `· ${exp.startDate}`}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <svg className={cn('h-5 w-5 text-muted-foreground transition-transform duration-200', expandedIndex === index && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-
-            <AnimatePresence>
-              {expandedIndex === index && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                  <div className="px-4 pb-4 pt-2 border-t border-border space-y-4">
-                    {experiences.length > 1 && (
-                      <div className="flex justify-end">
-                        <Button variant="outline" size="sm" onClick={() => removeExperience(index)} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                          <Trash2 className="h-4 w-4 mr-2" /> 删除
-                        </Button>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {isProjectMode ? (
-                        <>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">项目名称</Label>
-                            <div className="relative"><Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input value={exp.companyName || ''} onChange={(e) => updateExperience(index, { companyName: e.target.value })} placeholder="例如：校园二手交易平台" className="pl-10 bg-accent/50" />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">担任角色</Label>
-                            <div className="relative"><Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input value={exp.title || ''} onChange={(e) => updateExperience(index, { title: e.target.value })} placeholder={rolePlaceholder} className="pl-10 bg-accent/50" />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">省份</Label>
-                            <div className="relative"><MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input value={exp.city || ''} onChange={(e) => updateExperience(index, { city: e.target.value })} placeholder="例如：江苏省" className="pl-10 bg-accent/50" />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">市/区</Label>
-                            <Input value={exp.state || ''} onChange={(e) => updateExperience(index, { state: e.target.value })} placeholder="例如：南京市鼓楼区" className="bg-accent/50" />
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">公司名称</Label>
-                            <div className="relative"><Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input value={exp.companyName || ''} onChange={(e) => updateExperience(index, { companyName: e.target.value })} placeholder="例如：某某科技有限公司" className="pl-10 bg-accent/50" />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">工作地点</Label>
-                            <div className="relative"><Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input value={exp.state || ''} onChange={(e) => updateExperience(index, { state: e.target.value })} placeholder="例如：上海市浦东新区" className="pl-10 bg-accent/50" />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">担任角色</Label>
-                            <div className="relative"><Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input value={exp.title || ''} onChange={(e) => updateExperience(index, { title: e.target.value })} placeholder={rolePlaceholder} className="pl-10 bg-accent/50" />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">部门/业务方向</Label>
-                            <div className="relative"><MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input value={exp.city || ''} onChange={(e) => updateExperience(index, { city: e.target.value })} placeholder="例如：支付中台/交易系统" className="pl-10 bg-accent/50" />
-                            </div>
-                          </div>
-                        </>
-                      )}
-                      <div>
-                        <Label className="text-xs text-muted-foreground mb-1.5 block">开始时间</Label>
-                        <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="month" value={exp.startDate || ''} onChange={(e) => updateExperience(index, { startDate: e.target.value })} className="pl-10 bg-accent/50" />
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground mb-1.5 block">结束时间</Label>
-                        <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="month" value={exp.endDate || ''} onChange={(e) => updateExperience(index, { endDate: e.target.value })} placeholder="至今" disabled={exp.currentlyWorking} className="pl-10 bg-accent/50 disabled:opacity-50" />
-                        </div>
-                      </div>
-                      <div className="col-span-2">
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <Label className="text-xs text-muted-foreground block">工作内容与成果</Label>
-                          <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setExampleOpen(true)}>示例</Button>
-                        </div>
-                        <RichTextEditor value={exp.workSummary || ''} onChange={(html) => updateExperience(index, { workSummary: html })} placeholder="请填写工作内容与成果（点击右上角“示例”查看参考）" minHeight={180} />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ))}
-      </AnimatePresence>
-
-      <Button variant="outline" onClick={() => { addExperience(); setExpandedIndex(experiences.length); }} className="w-full gap-2 border-dashed border-2 hover:border-primary hover:bg-primary/5 h-12">
-        <Plus className="h-4 w-4" /> 添加{sectionTitle}
-      </Button>
+      {candidateType === 'student' ? (
+        <>
+          {renderExperienceSection('实习经历', 'internship', false)}
+          {renderExperienceSection('项目经历', 'project', true)}
+        </>
+      ) : (
+        renderExperienceSection('工作经历', 'professional', false)
+      )}
 
       <Dialog open={exampleOpen} onOpenChange={setExampleOpen}>
         <DialogContent className="sm:max-w-2xl">
