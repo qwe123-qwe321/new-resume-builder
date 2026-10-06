@@ -33,6 +33,14 @@ function cloneExperiences(list: Experience[] | undefined): Experience[] {
   return (list || []).map((item) => ({ ...item }));
 }
 
+function getExperienceTypeFromId(id: string | undefined): 'internship' | 'project' | 'professional' | undefined {
+  if (!id) return undefined;
+  if (id.startsWith('internship:')) return 'internship';
+  if (id.startsWith('project:')) return 'project';
+  if (id.startsWith('professional:')) return 'professional';
+  return undefined;
+}
+
 function getCurrentExperienceType(
   candidateType: 'student' | 'professional',
   studentExperienceType: 'internship' | 'project',
@@ -49,7 +57,7 @@ function normalizeExperiences(
   const fallbackType = getCurrentExperienceType(candidateType, studentExperienceType);
   return cloneExperiences(list).map((item) => ({
     ...item,
-    experienceType: item.experienceType || fallbackType,
+    experienceType: item.experienceType || getExperienceTypeFromId(item.id) || fallbackType,
   }));
 }
 

@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma.service';
 
 const RESUME_SCALAR_FIELDS = new Set([
@@ -46,6 +47,40 @@ function normalizeExperienceType(value: unknown): string | null {
   return value === 'internship' || value === 'project' || value === 'professional'
     ? value
     : null;
+}
+
+function getExperienceTypeFromId(value: unknown): string | null {
+  const id = typeof value === 'string' ? value : '';
+  if (id.startsWith('internship:')) return 'internship';
+  if (id.startsWith('project:')) return 'project';
+  if (id.startsWith('professional:')) return 'professional';
+  return null;
+}
+
+function stripExperienceTypePrefix(value: string): string {
+  return value.replace(/^(internship|project|professional):/, '');
+}
+
+function getExperienceId(value: unknown, type: string | null, supportsExperienceTypeColumn: boolean): string {
+  const id = typeof value === 'string' && value ? value : randomUUID();
+  if (supportsExperienceTypeColumn || !type) return id;
+  return `${type}:${stripExperienceTypePrefix(id)}`;
+}
+
+async function hasExperienceTypeColumn(tx: Prisma.TransactionClient): Promise<boolean> {
+  try {
+    const rows = await tx.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'ResumeExperience'
+          AND column_name = 'experienceType'
+      ) AS "exists"
+    `;
+    return Boolean(rows[0]?.exists);
+  } catch {
+    return false;
+  }
 }
 
 function normalizeFields<T extends Record<string, unknown>>(data: T): T {
@@ -115,26 +150,32 @@ export class ResumesService {
     const skillList = Array.isArray(payload.skills) ? payload.skills as Array<Record<string, unknown>> : [];
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const supportsExperienceTypeColumn = await hasExperienceTypeColumn(tx);
+
       await tx.resumeExperience.deleteMany({ where: { resumeId: id } });
       await tx.resumeEducation.deleteMany({ where: { resumeId: id } });
       await tx.resumeSkill.deleteMany({ where: { resumeId: id } });
 
       if (experienceList.length > 0) {
         await tx.resumeExperience.createMany({
-          data: experienceList.map((item, index) => ({
-            resumeId: id,
-            experienceType: normalizeExperienceType(item.experienceType),
-            title: String(item.title || ''),
-            companyName: String(item.companyName || ''),
-            city: item.city ? String(item.city) : null,
-            state: item.state ? String(item.state) : null,
-            startDate: String(item.startDate || ''),
-            endDate: item.endDate ? String(item.endDate) : null,
-            currentlyWorking: Boolean(item.currentlyWorking),
-            workSummary: item.workSummary ? String(item.workSummary) : null,
-            aiGenerated: Boolean(item.aiGenerated),
-            sortOrder: index,
-          })),
+          data: experienceList.map((item, index) => {
+            const experienceType = normalizeExperienceType(item.experienceType) || getExperienceTypeFromId(item.id);
+            return {
+              id: getExperienceId(item.id, experienceType, supportsExperienceTypeColumn),
+              resumeId: id,
+              ...(supportsExperienceTypeColumn ? { experienceType } : {}),
+              title: String(item.title || ''),
+              companyName: String(item.companyName || ''),
+              city: item.city ? String(item.city) : null,
+              state: item.state ? String(item.state) : null,
+              startDate: String(item.startDate || ''),
+              endDate: item.endDate ? String(item.endDate) : null,
+              currentlyWorking: Boolean(item.currentlyWorking),
+              workSummary: item.workSummary ? String(item.workSummary) : null,
+              aiGenerated: Boolean(item.aiGenerated),
+              sortOrder: index,
+            };
+          }),
         });
       }
 
